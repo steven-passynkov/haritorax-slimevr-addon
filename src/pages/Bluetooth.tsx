@@ -1,9 +1,13 @@
 import { Box, Button, VStack, Text } from "@chakra-ui/react";
-import useBluetoothConnection from "../hooks/useBluetoothConnection";
+import { useSelector } from "react-redux";
 
-const BluetoothTab = () => {
-  const { status, connect, disconnectAll, devicesData } =
-    useBluetoothConnection();
+interface BluetoothTabProps {
+  connect: () => Promise<void>;
+  disconnectAll: () => void;
+}
+
+const BluetoothTab = ({ connect, disconnectAll }: BluetoothTabProps) => {
+  const bluetooth = useSelector((state: any) => state.bluetooth);
 
   return (
     <Box p={5}>
@@ -17,10 +21,10 @@ const BluetoothTab = () => {
           </Button>
         </Box>
         <Box>
-          <Text>Status: {status}</Text>
+          <Text>Status: {bluetooth.status}</Text>
         </Box>
         <Box>
-          <Text>Data: {JSON.stringify(devicesData)}</Text>
+          <Text>Data: {JSON.stringify(bluetooth.devicesData)}</Text>
         </Box>
       </VStack>
     </Box>

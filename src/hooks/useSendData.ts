@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 interface Data {
   [key: string]: any;
@@ -13,22 +13,23 @@ function useSendData(): [(data: any) => Promise<any>, boolean, string | null] {
     setError(null);
 
     try {
-      const response = await fetch('http://192.168.45.229:8000/', {
-        method: 'POST',
+      const response = await fetch("http://localhost:8000/", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(data),
       });
 
       if (!response.ok) {
-        throw new Error('Request failed');
+        throw new Error("Request failed with status " + response.status);
       }
 
       const responseData = await response.json();
       return responseData;
     } catch (err: any) {
       setError(err.message);
+      return err.message;
     } finally {
       setIsLoading(false);
     }

@@ -1,6 +1,13 @@
 import { useState } from "react";
 import Quaternion from "quaternion";
 import { Quaternion as QuaternionThree, Vector3 } from "three";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  setStatus,
+  setDevicesData,
+  resetDevicesData,
+} from "../store/reducers/bluetoothSlice";
+import { RootState } from "../store/store";
 const noble = window.require("@abandonware/noble");
 
 type Rotation = {
@@ -113,8 +120,11 @@ function interpolateIMU(currentData: any, newData: any, t: number) {
 }
 
 const useBluetoothConnection = () => {
-  const [status, setStatus] = useState("");
-  const [devicesData, setDevicesData] = useState<DeviceData>({});
+  const dispatch = useDispatch();
+  const devicesData = useSelector(
+    (state: RootState) => state.bluetooth.devicesData
+  );
+  // const [devicesData, setDevicesData] = useState<DeviceData>({});
   const [connectedPeripherals, setConnectedPeripherals] = useState<any[]>([]);
 
   const [IMUPacketData, setIMUPacketData] = useState<IMUPacketData>({
@@ -299,7 +309,7 @@ const useBluetoothConnection = () => {
     return [device, rotation, gravity];
   }
 
-  const connect = () => {
+  const connect = async () => {
     noble.on("stateChange", function (state: string) {
       if (state === "poweredOn") {
         noble.startScanning();
@@ -314,8 +324,10 @@ const useBluetoothConnection = () => {
       ) {
         peripheral.connect(function (err: Error) {
           if (err) {
-            setStatus(
-              `Error connecting to ${peripheral.advertisement.localName}`
+            dispatch(
+              setStatus(
+                `Error connecting to ${peripheral.advertisement.localName}`
+              )
             );
             return;
           }
@@ -422,23 +434,25 @@ const useBluetoothConnection = () => {
                             z: accelZ,
                           } = postDataCurrent["acceleration"];
 
-                          setDevicesData((prevData) => ({
-                            ...prevData,
-                            [peripheral.id]: {
-                              ...prevData[peripheral.id],
-                              ...postData,
-                              rotation_Euler: {
-                                x: rotX,
-                                y: rotY,
-                                z: rotZ,
+                          dispatch(
+                            setDevicesData({
+                              id: peripheral.id,
+                              data: {
+                                ...(devicesData[peripheral.id] || {}),
+                                ...postData,
+                                rotation_Euler: {
+                                  x: rotX,
+                                  y: rotY,
+                                  z: rotZ,
+                                },
+                                acceleration: {
+                                  x: accelX,
+                                  y: accelY,
+                                  z: accelZ,
+                                },
                               },
-                              acceleration: {
-                                x: accelX,
-                                y: accelY,
-                                z: accelZ,
-                              },
-                            },
-                          }));
+                            })
+                          );
                         });
                       }
                       if (characteristic.uuid === "2a19") {
@@ -461,14 +475,15 @@ const useBluetoothConnection = () => {
 
                         characteristic.on("data", function (data: any) {
                           console.log(data);
-                          setDevicesData((prevData) => ({
-                            ...prevData,
-                            [peripheral.id]: {
-                              ...prevData[peripheral.id],
-                              battery: data[0],
-                            },
-                          }));
-                          console.log(devicesData);
+                          dispatch(
+                            setDevicesData({
+                              id: peripheral.id,
+                              data: {
+                                ...(devicesData[peripheral.id] || {}),
+                                battery: data[0],
+                              },
+                            })
+                          );
                         });
                       }
                     });
@@ -483,8 +498,8 @@ const useBluetoothConnection = () => {
   };
 
   const reset = () => {
-    setStatus("");
-    setDevicesData({});
+    dispatch(setStatus(""));
+    dispatch(resetDevicesData());
     setConnectedPeripherals([]);
     noble.stopScanning();
   };
@@ -509,11 +524,12 @@ const useBluetoothConnection = () => {
     }
   };
 
-  const disconnectAll = () => {
-    connectedPeripherals.forEach((p) => disconnect(p.id));
+  const disconnectAll = async () => {
+    for (const peripheral of connectedPeripherals) {
+      await disconnect(peripheral.id);
+    }
   };
-
-  return { status, connect, disconnect, disconnectAll, devicesData };
+  return { connect, disconnect, disconnectAll };
 };
 
 export default useBluetoothConnection;

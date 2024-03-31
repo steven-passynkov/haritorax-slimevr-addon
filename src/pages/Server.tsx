@@ -1,6 +1,22 @@
-import useSendData from "../hooks/useSendData";
+import { Button, Text } from "@chakra-ui/react";
 
-const Server = () => {
+interface ServerProps {
+  handleSendData: () => void;
+  isLoading: boolean;
+  error: any;
+  selectedData: any;
+}
 
-      
+const Server = ({ handleSendData, isLoading, error, selectedData }: ServerProps) => {
+  return (
+    <div>
+      <Button colorScheme="blue" onClick={handleSendData} isLoading={isLoading}>
+        Connect to Server
+      </Button>
+      {error && <Text color="red.500">Error: {error.message}</Text>}
+      {selectedData && <Text>Sending data: {JSON.stringify(selectedData)}</Text>}
+    </div>
+  );
 };
+
+export default Server;
